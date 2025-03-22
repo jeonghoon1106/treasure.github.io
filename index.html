@@ -3,62 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>보물찾기</title>
+    <title>보물찾기 이벤트</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
         input { margin: 10px; padding: 5px; }
         button { padding: 10px; }
         .qr-container { margin-top: 20px; }
+        #adminPanel { margin-top: 20px; }
+        #entryList { list-style-type: none; padding: 0; }
     </style>
-    <script type="module">
-        // Firebase SDK 불러오기
-        import { initializeApp } from "firebase/app";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "firebase/firestore";
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>보물찾기 이벤트</h1>
+    <p>학번과 이름을 입력하세요 (각 보물당 선착순 1명!)</p>
+    <input type="text" id="studentId" placeholder="학번 입력">
+    <input type="text" id="name" placeholder="이름 입력">
+    <p id="result"></p>
 
-        // Firebase 앱 설정 (Firebase Console에서 얻은 값들)
+    <h2>관리자 페이지</h2>
+    <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
+    <button onclick="verifyAdmin()">관리자 접속</button>
+
+    <div id="adminPanel" style="display:none;">
+        <h3>참가자 목록</h3>
+        <button onclick="showEntries()">참가자 목록 보기</button>
+        <ul id="entryList"></ul>
+    </div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js"; // Firestore 임포트
+
+        // Firebase 구성
         const firebaseConfig = {
-          apiKey: "AIzaSyDJ4eM_EgOtbTTI474O8-pOmxtx61krTNQ",
-          authDomain: "treasurehunt-22e35.firebaseapp.com",
-          projectId: "treasurehunt-22e35",
-          storageBucket: "treasurehunt-22e35.firebasestorage.app",
-          messagingSenderId: "952371872746",
-          appId: "1:952371872746:web:f5cb8df1e8a79d6289e893",
-          measurementId: "G-RQ1YPJCBCS"
+            apiKey: "AIzaSyDJ4eM_EgOtbTTI474O8-pOmxtx61krTNQ",
+            authDomain: "treasurehunt-22e35.firebaseapp.com",
+            projectId: "treasurehunt-22e35",
+            storageBucket: "treasurehunt-22e35.firebasestorage.app",
+            messagingSenderId: "952371872746",
+            appId: "1:952371872746:web:f5cb8df1e8a79d6289e893",
+            measurementId: "G-RQ1YPJCBCS"
         };
 
-        // Firebase 앱 초기화
+        // Firebase 초기화
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app); // Firestore DB 초기화
+
+        // Firestore 초기화
+        const db = getFirestore(app);
 
         const adminPassword = "1234"; // 관리자 비밀번호 설정
 
-        // 참가자 제출 함수
-        function submitEntry() {
-            let studentId = document.getElementById('studentId').value.trim();
-            let name = document.getElementById('name').value.trim();
-            let result = document.getElementById('result');
+        // URL에서 id 파라미터를 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const treasureId = urlParams.get('id'); // ?id=1, ?id=2, ... 
 
-            if (!studentId || !name) {
-                result.innerText = "학번과 이름을 입력해주세요.";
+        // 참가자 제출 함수
+        async function submitEntry() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const result = document.getElementById('result');
+
+            if (!studentId || !name || !treasureId) {
+                result.innerText = "학번, 이름을 모두 입력하고 QR 코드 URL을 확인해주세요.";
                 return;
             }
 
-            // Firestore에 참가자 추가
-            addDoc(collection(db, "participants"), {
-                studentId: studentId,
-                name: name,
-            })
-            .then(() => {
-                result.innerText = "축하합니다! 보물을 찾았습니다!";
-            })
-            .catch((error) => {
-                console.error("Error adding document: ", error);
-            });
+            // 해당 보물에 등록된 참가자가 있는지 확인
+            const treasureDoc = doc(db, "treasures", treasureId);
+            const treasureSnapshot = await getDoc(treasureDoc);
+
+            if (treasureSnapshot.exists()) {
+                const treasureData = treasureSnapshot.data();
+                if (treasureData.registered) {
+                    result.innerText = "이미 등록된 보물입니다. 다른 보물을 선택해주세요.";
+                } else {
+                    // Firestore에 참가자 등록
+                    await setDoc(treasureDoc, {
+                        registered: {
+                            studentId: studentId,
+                            name: name
+                        }
+                    });
+                    result.innerText = "축하합니다! 보물을 찾았습니다!";
+                }
+            } else {
+                result.innerText = "존재하지 않는 보물입니다.";
+            }
         }
 
         // 관리자 비밀번호 확인 함수
         function verifyAdmin() {
-            let inputPass = document.getElementById('adminPass').value;
+            const inputPass = document.getElementById('adminPass').value;
             if (inputPass === adminPassword) {
                 document.getElementById('adminPanel').style.display = 'block';
             } else {
@@ -66,50 +104,22 @@
             }
         }
 
-        // 참가자 목록 보여주는 함수
-        function showEntries() {
-            let entryList = document.getElementById('entryList');
-            entryList.innerHTML = ""; // 기존 목록 지우기
+        // 참가자 목록을 불러오는 함수
+        async function showEntries() {
+            const entryList = document.getElementById('entryList');
+            entryList.innerHTML = "";
 
-            // Firestore에서 참가자 목록 불러오기
-            getDocs(collection(db, "participants")).then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    let li = document.createElement('li');
-                    li.innerText = `학번 ${doc.data().studentId}, 이름 ${doc.data().name}`;
+            // Firestore에서 보물 목록 불러오기
+            const treasuresSnapshot = await getDocs(collection(db, "treasures"));
+            treasuresSnapshot.forEach((doc) => {
+                const treasureData = doc.data();
+                if (treasureData.registered) {
+                    const li = document.createElement('li');
+                    li.innerText = `${doc.id} 보물 - 등록된 참가자: ${treasureData.registered.name}`;
                     entryList.appendChild(li);
-                });
-            }).catch((error) => {
-                console.error("Error getting documents: ", error);
+                }
             });
         }
-
-        // 실시간 참가자 목록 업데이트
-        onSnapshot(collection(db, "participants"), (querySnapshot) => {
-            let entryList = document.getElementById('entryList');
-            entryList.innerHTML = ""; // 기존 목록 지우기
-
-            querySnapshot.forEach((doc) => {
-                let li = document.createElement('li');
-                li.innerText = `학번 ${doc.data().studentId}, 이름 ${doc.data().name}`;
-                entryList.appendChild(li);
-            });
-        });
     </script>
-</head>
-<body>
-    <h1>보물찾기 이벤트</h1>
-    <p>학번과 이름을 입력하세요 (각 보물당 선착순 1명!)</p>
-    <input type="text" id="studentId" placeholder="학번 입력">
-    <input type="text" id="name" placeholder="이름 입력">
-    <button onclick="submitEntry()">제출</button>
-    <p id="result"></p>
-
-    <h2>관리자 페이지</h2>
-    <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
-    <button onclick="verifyAdmin()">접속</button>
-    <div id="adminPanel" style="display:none;">
-        <button onclick="showEntries()">참가자 목록 보기</button>
-        <ul id="entryList"></ul>
-    </div>
 </body>
 </html>
