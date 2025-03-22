@@ -30,7 +30,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const treasureId = urlParams.get('id'); // QR 코드마다 고유 ID 사용
         if (!treasureId) {
-            document.body.innerHTML = "잘못된 접근입니다.";
+            document.getElementById('result').innerText = "잘못된 접근입니다. 올바른 QR 코드를 사용해주세요.";
             throw new Error("No treasure ID provided");
         }
 
@@ -39,13 +39,13 @@
 
         // QR을 한번 들어가면 다시 못 들어가게 설정
         if (winners[treasureId]) {
-            document.body.innerHTML = "이 보물은 이미 찾았습니다!";
+            document.getElementById('result').innerText = "이 보물은 이미 찾았습니다!";
             throw new Error("Treasure already claimed");
         }
 
         function submitEntry() {
-            let studentId = document.getElementById('studentId').value;
-            let name = document.getElementById('name').value;
+            let studentId = document.getElementById('studentId').value.trim();
+            let name = document.getElementById('name').value.trim();
             let result = document.getElementById('result');
 
             if (!studentId || !name) {
@@ -61,7 +61,8 @@
             winners[treasureId] = { studentId, name };
             localStorage.setItem('winners', JSON.stringify(winners));
             result.innerText = "축하합니다! 보물을 찾았습니다!";
-            setTimeout(() => { location.reload(); }, 2000); // 2초 후 페이지 새로고침
+            
+            console.log("✅ 입력 완료: ", winners); // 디버깅용
         }
 
         function verifyAdmin() {
