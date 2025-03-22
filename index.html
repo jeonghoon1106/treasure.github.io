@@ -49,9 +49,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const treasureId = urlParams.get('id');
         
-        if (!treasureId) {
-            document.body.innerHTML = "<h1>잘못된 접근입니다</h1>";
-            throw new Error("No treasure ID provided");
+        if (!treasureId || isNaN(treasureId)) {
+            alert("잘못된 QR 코드입니다. 홈으로 이동합니다.");
+            window.location.href = "https://qr-treasure-hunt.vercel.app";
         }
 
         function submitEntry() {
@@ -72,8 +72,6 @@
             winners[treasureId] = { studentId, name };
             localStorage.setItem('winners', JSON.stringify(winners));
             result.innerText = "축하합니다! 보물을 찾았습니다!";
-            
-            console.log("✅ 입력 완료: ", winners); // 디버깅용
         }
 
         function verifyAdmin() {
