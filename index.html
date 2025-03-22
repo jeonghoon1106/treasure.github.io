@@ -85,7 +85,7 @@
 
         function showEntries() {
             let entryList = document.getElementById('entryList');
-            entryList.innerHTML = "";
+            entryList.innerHTML = ""; // 기존 목록 초기화
             for (let key in winners) {
                 let li = document.createElement('li');
                 li.innerText = `보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
