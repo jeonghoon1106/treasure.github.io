@@ -1,74 +1,107 @@
-<!-- Firebase SDK를 추가 -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>보물찾기</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        input { margin: 10px; padding: 5px; }
+        button { padding: 10px; }
+        .qr-container { margin-top: 20px; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+</head>
+<body>
+    <h1>보물찾기 이벤트</h1>
+    <p>학번과 이름을 입력하세요 (각 보물당 선착순 1명!)</p>
+    <input type="text" id="studentId" placeholder="학번 입력">
+    <input type="text" id="name" placeholder="이름 입력">
+    <button onclick="submitEntry()">제출</button>
+    <p id="result"></p>
 
-<script>
-    // Firebase 초기화
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        databaseURL: "https://your-database-url.firebaseio.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-    };
+    <h2>QR 코드 목록</h2>
+    <div id="qrContainer" class="qr-container"></div>
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    <h2>관리자 페이지</h2>
+    <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
+    <button onclick="verifyAdmin()">접속</button>
+    <div id="adminPanel" style="display:none;">
+        <button onclick="showEntries()">참가자 목록 보기</button>
+        <ul id="entryList"></ul>
+        <h3>참가자 삭제</h3>
+        <input type="password" id="deletePass" placeholder="삭제 비밀번호 입력">
+        <button onclick="deleteEntry()">삭제</button>
+    </div>
 
-    let winners = {};
-    
-    // 참가자 데이터 읽기
-    function loadEntries() {
-        const entryList = document.getElementById('entryList');
-        db.ref('winners').on('value', (snapshot) => {
-            winners = snapshot.val() || {};
-            entryList.innerHTML = "";
-            for (let key in winners) {
-                let li = document.createElement('li');
-                li.innerText = `보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
-                let deleteButton = document.createElement('button');
-                deleteButton.innerText = '삭제';
-                deleteButton.onclick = function() { deleteParticipant(key); };
-                li.appendChild(deleteButton);
-                entryList.appendChild(li);
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",  // Firebase에서 제공된 API Key로 교체
+            authDomain: "YOUR_AUTH_DOMAIN",  // Firebase 프로젝트의 Auth Domain
+            databaseURL: "https://your-database-url.firebaseio.com",  // Firebase Realtime Database URL
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let winners = {};
+
+        // 참가자 제출
+        function submitEntry() {
+            let studentId = document.getElementById('studentId').value.trim();
+            let name = document.getElementById('name').value.trim();
+            let result = document.getElementById('result');
+
+            if (!studentId || !name) {
+                result.innerText = "학번과 이름을 입력해주세요.";
+                return;
             }
-        });
-    }
 
-    // 참가자 제출
-    function submitEntry() {
-        let studentId = document.getElementById('studentId').value.trim();
-        let name = document.getElementById('name').value.trim();
-        let result = document.getElementById('result');
+            if (winners[treasureId]) {
+                result.innerText = "이미 이 보물이 찾아졌습니다!";
+                return;
+            }
 
-        if (!studentId || !name) {
-            result.innerText = "학번과 이름을 입력해주세요.";
-            return;
+            winners[treasureId] = { studentId, name };
+            db.ref('winners').set(winners); // Firebase에 데이터 저장
+            result.innerText = "축하합니다! 보물을 찾았습니다!";
         }
 
-        if (winners[treasureId]) {
-            result.innerText = "이미 이 보물이 찾아졌습니다!";
-            return;
+        // 참가자 목록 보기
+        function showEntries() {
+            const entryList = document.getElementById('entryList');
+            db.ref('winners').on('value', (snapshot) => {
+                winners = snapshot.val() || {};
+                entryList.innerHTML = ""; // 목록 초기화
+                for (let key in winners) {
+                    let li = document.createElement('li');
+                    li.innerText = `보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
+                    let deleteButton = document.createElement('button');
+                    deleteButton.innerText = '삭제';
+                    deleteButton.onclick = function() { deleteParticipant(key); };
+                    li.appendChild(deleteButton);
+                    entryList.appendChild(li);
+                }
+            });
         }
 
-        // Firebase에 참가자 정보 저장
-        winners[treasureId] = { studentId, name };
-        db.ref('winners').set(winners);
-        result.innerText = "축하합니다! 보물을 찾았습니다!";
-    }
-
-    // 참가자 삭제
-    function deleteParticipant(treasureId) {
-        let inputDeletePass = document.getElementById('deletePass').value.trim();
-        if (inputDeletePass === deletePassword) {
-            delete winners[treasureId];
-            db.ref('winners').set(winners);
-            alert("참가자가 삭제되었습니다.");
-            loadEntries(); // 참가자 목록 갱신
-        } else {
-            alert("삭제 비밀번호가 틀렸습니다!");
+        // 참가자 삭제
+        function deleteParticipant(treasureId) {
+            let inputDeletePass = document.getElementById('deletePass').value.trim();
+            if (inputDeletePass === deletePassword) {
+                delete winners[treasureId];
+                db.ref('winners').set(winners);
+                alert("참가자가 삭제되었습니다.");
+                showEntries(); // 참가자 목록 갱신
+            } else {
+                alert("삭제 비밀번호가 틀렸습니다!");
+            }
         }
-    }
-</script>
+    </script>
+</body>
+</html>
