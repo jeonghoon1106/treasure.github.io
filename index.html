@@ -10,6 +10,8 @@
         button { padding: 10px; }
         .qr-container { margin-top: 20px; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -32,29 +34,52 @@
     </div>
 
     <script>
-        let winners = {};
-        try {
-            const storedWinners = localStorage.getItem('winners');
-            winners = storedWinners ? JSON.parse(storedWinners) : {};
-        } catch (e) {
-            console.error("Error parsing winners from localStorage:", e);
-            winners = {};
-        }
+        // Firebase 초기화 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJ4eM_EgOtbTTI474O8-pOmxtx61krTNQ",
+            authDomain: "treasurehunt-22e35.firebaseapp.com",
+            projectId: "treasurehunt-22e35",
+            storageBucket: "treasurehunt-22e35.firebasestorage.app",
+            messagingSenderId: "952371872746",
+            appId: "1:952371872746:web:f5cb8df1e8a79d6289e893",
+            measurementId: "G-RQ1YPJCBCS"
+        };
 
-        if (typeof winners !== 'object' || winners === null) {
-            winners = {};
-        }
-        
+        // Firebase App과 Firestore 인스턴스 초기화
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const adminPassword = "1234"; // 관리자 비밀번호 설정
-        const urlParams = new URLSearchParams(window.location.search);
-        const treasureId = urlParams.get('id');
-        
-        if (!treasureId || isNaN(treasureId)) {
-            alert("잘못된 QR 코드입니다. 홈으로 이동합니다.");
-            window.location.href = "https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app";
+
+        // QR 코드 생성 함수
+        function generateQRCode() {
+            const qrContainer = document.getElementById('qrContainer');
+            for (let i = 1; i <= 5; i++) {
+                const qrLink = `https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app/?id=${i}`;
+                const qrDiv = document.createElement('div');
+                const qrText = document.createElement('p');
+                qrText.innerText = `보물 ${i}의 QR 코드`;
+                qrDiv.appendChild(qrText);
+
+                // QR 코드 생성
+                new QRCode(qrDiv, {
+                    text: qrLink,
+                    width: 128,
+                    height: 128,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+                qrContainer.appendChild(qrDiv);
+            }
         }
 
-        function submitEntry() {
+        // 페이지 로드 시 QR 코드 생성
+        generateQRCode();
+
+        // QR 코드에 참가자가 등록할 때 실행되는 함수
+        async function submitEntry() {
             let studentId = document.getElementById('studentId').value.trim();
             let name = document.getElementById('name').value.trim();
             let result = document.getElementById('result');
@@ -64,16 +89,32 @@
                 return;
             }
 
-            if (winners[treasureId]) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const treasureId = urlParams.get('id');
+
+            if (!treasureId || isNaN(treasureId)) {
+                result.innerText = "잘못된 QR 코드입니다.";
+                return;
+            }
+
+            // 해당 보물이 이미 등록되었는지 Firestore에서 확인
+            const treasureRef = db.collection("treasures").doc(treasureId);
+            const doc = await treasureRef.get();
+            if (doc.exists) {
                 result.innerText = "이미 이 보물이 찾아졌습니다!";
                 return;
             }
 
-            winners[treasureId] = { studentId, name };
-            localStorage.setItem('winners', JSON.stringify(winners));
+            // Firestore에 참가자 정보 저장
+            await treasureRef.set({
+                studentId: studentId,
+                name: name
+            });
+
             result.innerText = "축하합니다! 보물을 찾았습니다!";
         }
 
+        // 관리자 페이지 인증
         function verifyAdmin() {
             let inputPass = document.getElementById('adminPass').value;
             if (inputPass === adminPassword) {
@@ -83,14 +124,17 @@
             }
         }
 
-        function showEntries() {
+        // 관리자 페이지에서 참가자 목록 보기
+        async function showEntries() {
             let entryList = document.getElementById('entryList');
             entryList.innerHTML = "";
-            for (let key in winners) {
-                let li = document.createElement('li');
-                li.innerText = 보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name};
+
+            const snapshot = await db.collection("treasures").get();
+            snapshot.forEach((doc) => {
+                const li = document.createElement('li');
+                li.innerText = `보물 ${doc.id}: 학번 ${doc.data().studentId}, 이름 ${doc.data().name}`;
                 entryList.appendChild(li);
-            }
+            });
         }
     </script>
 </body>
