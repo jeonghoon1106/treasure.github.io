@@ -97,6 +97,7 @@
             let qrContainer = document.getElementById('qrContainer');
             qrContainer.innerHTML = "";
             let baseUrl = "https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app/?id="; // 수정된 URL
+            
             for (let i = 1; i <= 5; i++) {
                 let div = document.createElement('div');
                 div.style.marginBottom = "10px";
@@ -112,9 +113,28 @@
                 div.appendChild(label);
                 qrContainer.appendChild(div);
             }
+            
+            // 관리자 페이지 QR 코드 생성
+            let adminDiv = document.createElement('div');
+            adminDiv.style.marginTop = "20px";
+            let adminQR = document.createElement('div');
+            new QRCode(adminQR, {
+                text: "https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app/admin",
+                width: 128,
+                height: 128
+            });
+            let adminLabel = document.createElement('p');
+            adminLabel.innerText = "관리자 페이지";
+            adminDiv.appendChild(adminQR);
+            adminDiv.appendChild(adminLabel);
+            qrContainer.appendChild(adminDiv);
         }
         
         generateQRCodes();
     </script>
 </body>
 </html>
+
+{
+  "public": true
+}
