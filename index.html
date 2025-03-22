@@ -51,7 +51,7 @@
         
         if (!treasureId || isNaN(treasureId)) {
             alert("잘못된 QR 코드입니다. 홈으로 이동합니다.");
-            window.location.href = "https://qr-treasure-hunt.vercel.app";
+            window.location.href = "https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app";
         }
 
         function submitEntry() {
@@ -96,7 +96,7 @@
         function generateQRCodes() {
             let qrContainer = document.getElementById('qrContainer');
             qrContainer.innerHTML = "";
-            let baseUrl = "https://qr-treasure-hunt.vercel.app/?id=";
+            let baseUrl = "https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app/?id="; // 수정된 URL
             for (let i = 1; i <= 5; i++) {
                 let div = document.createElement('div');
                 div.style.marginBottom = "10px";
