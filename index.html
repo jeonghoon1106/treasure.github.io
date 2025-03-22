@@ -29,6 +29,9 @@
     <div id="adminPanel" style="display:none;">
         <button onclick="showEntries()">참가자 목록 보기</button>
         <ul id="entryList"></ul>
+        <h3>참가자 삭제</h3>
+        <input type="password" id="deletePass" placeholder="삭제 비밀번호 입력">
+        <button onclick="deleteEntry()">삭제</button>
     </div>
 
     <script>
@@ -41,11 +44,8 @@
             winners = {};
         }
 
-        if (typeof winners !== 'object' || winners === null) {
-            winners = {};
-        }
-        
         const adminPassword = "1234"; // 관리자 비밀번호 설정
+        const deletePassword = "delete123"; // 삭제 비밀번호 설정
         const urlParams = new URLSearchParams(window.location.search);
         const treasureId = urlParams.get('id');
         
@@ -90,6 +90,36 @@
                 let li = document.createElement('li');
                 li.innerText = `보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
                 entryList.appendChild(li);
+            }
+        }
+
+        function deleteEntry() {
+            let inputDeletePass = document.getElementById('deletePass').value.trim();
+            if (inputDeletePass === deletePassword) {
+                let studentId = document.getElementById('studentId').value.trim();
+                if (!studentId) {
+                    alert("삭제하려는 참가자의 학번을 입력해주세요.");
+                    return;
+                }
+
+                let deleted = false;
+                for (let key in winners) {
+                    if (winners[key].studentId === studentId) {
+                        delete winners[key]; // 해당 참가자 삭제
+                        deleted = true;
+                        break;
+                    }
+                }
+
+                if (deleted) {
+                    localStorage.setItem('winners', JSON.stringify(winners));
+                    alert("참가자가 삭제되었습니다.");
+                    showEntries(); // 참가자 목록 업데이트
+                } else {
+                    alert("삭제할 참가자가 없습니다.");
+                }
+            } else {
+                alert("삭제 비밀번호가 틀렸습니다!");
             }
         }
     </script>
