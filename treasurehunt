@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>보물찾기</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        input { margin: 10px; padding: 5px; }
+        button { padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>보물찾기 이벤트</h1>
+    <p>학번과 이름을 입력하세요 (각 QR코드당 선착순 1명!)</p>
+    <input type="text" id="studentId" placeholder="학번 입력">
+    <input type="text" id="name" placeholder="이름 입력">
+    <button onclick="submitEntry()">제출</button>
+    <p id="result"></p>
+
+    <h2>관리자 페이지</h2>
+    <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
+    <button onclick="verifyAdmin()">접속</button>
+    <div id="adminPanel" style="display:none;">
+        <button onclick="showEntries()">참가자 목록 보기</button>
+        <ul id="entryList"></ul>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const treasureId = urlParams.get('id'); // QR 코드마다 고유 ID 사용
+        if (!treasureId) {
+            document.body.innerHTML = "잘못된 접근입니다.";
+            throw new Error("No treasure ID provided");
+        }
+
+        let winners = JSON.parse(localStorage.getItem('winners')) || {};
+        const adminPassword = "1234"; // 관리자 비밀번호 설정
+
+        // QR을 한번 들어가면 다시 못 들어가게 설정
+        if (winners[treasureId]) {
+            document.body.innerHTML = "이 보물은 이미 찾았습니다!";
+            throw new Error("Treasure already claimed");
+        }
+
+        function submitEntry() {
+            let studentId = document.getElementById('studentId').value;
+            let name = document.getElementById('name').value;
+            let result = document.getElementById('result');
+
+            if (!studentId || !name) {
+                result.innerText = "학번과 이름을 입력해주세요.";
+                return;
+            }
+
+            if (winners[treasureId]) {
+                result.innerText = "이미 이 보물이 찾아졌습니다!";
+                return;
+            }
+
+            winners[treasureId] = { studentId, name };
+            localStorage.setItem('winners', JSON.stringify(winners));
+            result.innerText = "축하합니다! 보물을 찾았습니다!";
+            setTimeout(() => { location.reload(); }, 2000); // 2초 후 페이지 새로고침
+        }
+
+        function verifyAdmin() {
+            let inputPass = document.getElementById('adminPass').value;
+            if (inputPass === adminPassword) {
+                document.getElementById('adminPanel').style.display = 'block';
+            } else {
+                alert("비밀번호가 틀렸습니다!");
+            }
+        }
+
+        function showEntries() {
+            let entryList = document.getElementById('entryList');
+            entryList.innerHTML = "";
+            for (let key in winners) {
+                let li = document.createElement('li');
+                li.innerText = `보물 ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
+                entryList.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>
