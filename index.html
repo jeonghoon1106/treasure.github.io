@@ -8,15 +8,20 @@
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
         input { margin: 10px; padding: 5px; }
         button { padding: 10px; }
+        .qr-container { margin-top: 20px; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <h1>보물찾기 이벤트</h1>
-    <p>학번과 이름을 입력하세요 (각 QR코드당 선착순 1명!)</p>
+    <p>학번과 이름을 입력하세요 (각 보물당 선착순 1명!)</p>
     <input type="text" id="studentId" placeholder="학번 입력">
     <input type="text" id="name" placeholder="이름 입력">
     <button onclick="submitEntry()">제출</button>
     <p id="result"></p>
+
+    <h2>QR 코드 목록</h2>
+    <div id="qrContainer" class="qr-container"></div>
 
     <h2>관리자 페이지</h2>
     <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
@@ -27,20 +32,26 @@
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const treasureId = urlParams.get('id'); // QR 코드마다 고유 ID 사용
-        if (!treasureId) {
-            document.getElementById('result').innerText = "잘못된 접근입니다. 올바른 QR 코드를 사용해주세요.";
-            throw new Error("No treasure ID provided");
+        let winners = {};
+        try {
+            const storedWinners = localStorage.getItem('winners');
+            winners = storedWinners ? JSON.parse(storedWinners) : {};
+        } catch (e) {
+            console.error("Error parsing winners from localStorage:", e);
+            winners = {};
         }
 
-        let winners = JSON.parse(localStorage.getItem('winners')) || {};
+        if (typeof winners !== 'object' || winners === null) {
+            winners = {};
+        }
+        
         const adminPassword = "1234"; // 관리자 비밀번호 설정
-
-        // QR을 한번 들어가면 다시 못 들어가게 설정
-        if (winners[treasureId]) {
-            document.getElementById('result').innerText = "이 보물은 이미 찾았습니다!";
-            throw new Error("Treasure already claimed");
+        const urlParams = new URLSearchParams(window.location.search);
+        const treasureId = urlParams.get('id');
+        
+        if (!treasureId) {
+            document.body.innerHTML = "<h1>잘못된 접근입니다</h1>";
+            throw new Error("No treasure ID provided");
         }
 
         function submitEntry() {
@@ -79,10 +90,34 @@
             entryList.innerHTML = "";
             for (let key in winners) {
                 let li = document.createElement('li');
-                li.innerText = `보물 ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
+                li.innerText = `보물 ID ${key}: 학번 ${winners[key].studentId}, 이름 ${winners[key].name}`;
                 entryList.appendChild(li);
             }
         }
+
+        function generateQRCodes() {
+            let qrContainer = document.getElementById('qrContainer');
+            qrContainer.innerHTML = "";
+            let baseUrl = "https://qr-treasure-hunt.vercel.app/?id=";
+            for (let i = 1; i <= 5; i++) {
+                let div = document.createElement('div');
+                div.style.marginBottom = "10px";
+                let qr = document.createElement('div');
+                new QRCode(qr, {
+                    text: baseUrl + i,
+                    width: 128,
+                    height: 128
+                });
+                let label = document.createElement('p');
+                label.innerText = `보물 ID: ${i}`;
+                div.appendChild(qr);
+                div.appendChild(label);
+                qrContainer.appendChild(div);
+            }
+        }
+        
+        generateQRCodes();
     </script>
 </body>
 </html>
+
