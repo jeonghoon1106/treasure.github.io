@@ -14,17 +14,18 @@
             let qrCode = getQueryParam("qr");
             if (!qrCode) {
                 alert("잘못된 접근입니다! QR 코드로 접속하세요.");
-                document.getElementById("submitBtn").disabled = true; // 버튼 비활성화
-            } else {
-                document.getElementById("qrCode").value = qrCode;
+                document.body.innerHTML = "<h2>잘못된 접근입니다! QR 코드로 접속하세요.</h2>";
+                return;
             }
+
+            document.getElementById("qrCodeDisplay").innerText = `QR 코드: ${qrCode}`;
         });
 
         function submitForm(event) {
             event.preventDefault();
 
-            let scriptUrl = "https://script.google.com/macros/s/AKfycbzhZ-EeIGfBF8oGNlhirVXFlv8OEskOwiimnexHLUOzI_qnjN5Z1SrLs_d-mo7aphCz/exec"; // 업데이트된 URL
-            let qrCode = document.getElementById("qrCode").value;
+            let scriptUrl = "https://script.google.com/macros/s/AKfycbzhZ-EeIGfBF8oGNlhirVXFlv8OEskOwiimnexHLUOzI_qnjN5Z1SrLs_d-mo7aphCz/exec";
+            let qrCode = getQueryParam("qr");
             let studentId = document.getElementById("studentId").value.trim();
             let name = document.getElementById("name").value.trim();
             let fullName = `${studentId} ${name}`;
@@ -58,10 +59,9 @@
 </head>
 <body>
     <h2>보물찾기 등록</h2>
+    <h3 id="qrCodeDisplay"></h3> <!-- QR 코드를 표시만 함 -->
+    
     <form id="dataForm" onsubmit="submitForm(event)">
-        <label>QR 코드:</label>
-        <input type="text" id="qrCode" name="qrCode" readonly>
-        <br>
         <label>학번:</label>
         <input type="text" id="studentId" name="studentId" placeholder="학번 (예: 11503)" required>
         <br>
