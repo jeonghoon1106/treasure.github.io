@@ -3,139 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>보물찾기</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        input { margin: 10px; padding: 5px; }
-        button { padding: 10px; }
-        .qr-container { margin-top: 20px; }
-    </style>
-    <script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.5.0/firebase-firestore.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>
-<body>
-    <h1>보물찾기 이벤트</h1>
-    <p>학번과 이름을 입력하세요 (각 보물당 선착순 1명!)</p>
-    <input type="text" id="studentId" placeholder="학번 입력">
-    <input type="text" id="name" placeholder="이름 입력">
-    <button onclick="submitEntry()">제출</button>
-    <p id="result"></p>
-
-    <h2>QR 코드 목록</h2>
-    <div id="qrContainer" class="qr-container"></div>
-
-    <h2>관리자 페이지</h2>
-    <input type="password" id="adminPass" placeholder="관리자 비밀번호 입력">
-    <button onclick="verifyAdmin()">접속</button>
-    <div id="adminPanel" style="display:none;">
-        <button onclick="showEntries()">참가자 목록 보기</button>
-        <ul id="entryList"></ul>
-    </div>
-
+    <title>보물찾기 등록</title>
     <script>
-        // Firebase 초기화 설정
-        const firebaseConfig = {
-            apiKey: "AIzaSyDJ4eM_EgOtbTTI474O8-pOmxtx61krTNQ",
-            authDomain: "treasurehunt-22e35.firebaseapp.com",
-            projectId: "treasurehunt-22e35",
-            storageBucket: "treasurehunt-22e35.firebasestorage.app",
-            messagingSenderId: "952371872746",
-            appId: "1:952371872746:web:f5cb8df1e8a79d6289e893",
-            measurementId: "G-RQ1YPJCBCS"
-        };
-
-        // Firebase App과 Firestore 인스턴스 초기화
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        const adminPassword = "1234"; // 관리자 비밀번호 설정
-
-        // QR 코드 생성 함수
-        function generateQRCode() {
-            const qrContainer = document.getElementById('qrContainer');
-            for (let i = 1; i <= 5; i++) {
-                const qrLink = `https://treasurehunt-17dys3ekr-jeonghoon1106s-projects.vercel.app/?id=${i}`;
-                const qrDiv = document.createElement('div');
-                const qrText = document.createElement('p');
-                qrText.innerText = `보물 ${i}의 QR 코드`;
-                qrDiv.appendChild(qrText);
-
-                // QR 코드 생성
-                new QRCode(qrDiv, {
-                    text: qrLink,
-                    width: 128,
-                    height: 128,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
-
-                qrContainer.appendChild(qrDiv);
-            }
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
         }
 
-        // 페이지 로드 시 QR 코드 생성
-        generateQRCode();
+        document.addEventListener("DOMContentLoaded", function() {
+            let qrCode = getQueryParam("qr");
+            if (!qrCode) {
+                alert("잘못된 접근입니다! QR 코드로 접속하세요.");
+                document.getElementById("submitBtn").disabled = true; // 버튼 비활성화
+            } else {
+                document.getElementById("qrCode").value = qrCode;
+            }
+        });
 
-        // QR 코드에 참가자가 등록할 때 실행되는 함수
-        async function submitEntry() {
-            let studentId = document.getElementById('studentId').value.trim();
-            let name = document.getElementById('name').value.trim();
-            let result = document.getElementById('result');
+        function submitForm(event) {
+            event.preventDefault();
+
+            let scriptUrl = "https://script.google.com/macros/s/AKfycbzhZ-EeIGfBF8oGNlhirVXFlv8OEskOwiimnexHLUOzI_qnjN5Z1SrLs_d-mo7aphCz/exec"; // 업데이트된 URL
+            let qrCode = document.getElementById("qrCode").value;
+            let studentId = document.getElementById("studentId").value.trim();
+            let name = document.getElementById("name").value.trim();
+            let fullName = `${studentId} ${name}`;
 
             if (!studentId || !name) {
-                result.innerText = "학번과 이름을 입력해주세요.";
+                alert("학번과 이름을 입력하세요!");
                 return;
             }
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const treasureId = urlParams.get('id');
+            let formData = new FormData();
+            formData.append("qrCode", qrCode);
+            formData.append("name", fullName);
 
-            if (!treasureId || isNaN(treasureId)) {
-                result.innerText = "잘못된 QR 코드입니다.";
-                return;
-            }
-
-            // 해당 보물이 이미 등록되었는지 Firestore에서 확인
-            const treasureRef = db.collection("treasures").doc(treasureId);
-            const doc = await treasureRef.get();
-            if (doc.exists) {
-                result.innerText = "이미 이 보물이 찾아졌습니다!";
-                return;
-            }
-
-            // Firestore에 참가자 정보 저장
-            await treasureRef.set({
-                studentId: studentId,
-                name: name
-            });
-
-            result.innerText = "축하합니다! 보물을 찾았습니다!";
-        }
-
-        // 관리자 페이지 인증
-        function verifyAdmin() {
-            let inputPass = document.getElementById('adminPass').value;
-            if (inputPass === adminPassword) {
-                document.getElementById('adminPanel').style.display = 'block';
-            } else {
-                alert("비밀번호가 틀렸습니다!");
-            }
-        }
-
-        // 관리자 페이지에서 참가자 목록 보기
-        async function showEntries() {
-            let entryList = document.getElementById('entryList');
-            entryList.innerHTML = "";
-
-            const snapshot = await db.collection("treasures").get();
-            snapshot.forEach((doc) => {
-                const li = document.createElement('li');
-                li.innerText = `보물 ${doc.id}: 학번 ${doc.data().studentId}, 이름 ${doc.data().name}`;
-                entryList.appendChild(li);
-            });
+            fetch(scriptUrl, {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert("제출되었습니다!");
+                    document.getElementById("studentId").value = "";
+                    document.getElementById("name").value = "";
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error("오류 발생:", error));
         }
     </script>
+</head>
+<body>
+    <h2>보물찾기 등록</h2>
+    <form id="dataForm" onsubmit="submitForm(event)">
+        <label>QR 코드:</label>
+        <input type="text" id="qrCode" name="qrCode" readonly>
+        <br>
+        <label>학번:</label>
+        <input type="text" id="studentId" name="studentId" placeholder="학번 (예: 11503)" required>
+        <br>
+        <label>이름:</label>
+        <input type="text" id="name" name="name" placeholder="이름 (예: 홍길동)" required>
+        <br>
+        <button type="submit" id="submitBtn">제출</button>
+    </form>
 </body>
 </html>
