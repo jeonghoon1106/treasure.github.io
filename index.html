@@ -3,7 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>보물찾기 등록</title>
+    <title>🎃 할로윈 보물찾기 🎃</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+
+        body {
+            background-color: #121212;
+            color: #ff7518;
+            font-family: 'Creepster', cursive;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h2 {
+            font-size: 3rem;
+            text-shadow: 3px 3px 5px black;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        form {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0px 0px 15px rgba(255, 117, 24, 0.8);
+        }
+
+        label {
+            font-size: 1.5rem;
+            display: block;
+            margin: 10px 0;
+        }
+
+        input {
+            font-size: 1.2rem;
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            border: 2px solid #ff7518;
+            background-color: #222;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        button {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            background: #ff7518;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 0px 10px rgba(255, 117, 24, 1);
+        }
+
+        #statusMessage {
+            margin-top: 20px;
+            font-size: 1.3rem;
+            color: #ff7518;
+            text-shadow: 2px 2px 5px black;
+            display: none;
+        }
+    </style>
     <script>
         function getQueryParam(name) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -13,12 +85,12 @@
         document.addEventListener("DOMContentLoaded", function() {
             let qrCode = getQueryParam("qr");
             if (!qrCode) {
-                alert("잘못된 접근입니다! QR 코드로 접속하세요.");
-                document.body.innerHTML = "<h2>잘못된 접근입니다! QR 코드로 접속하세요.</h2>";
+                alert("❌ 잘못된 접근! QR 코드로 접속하세요.");
+                document.body.innerHTML = "<h2>❌ 잘못된 접근입니다!</h2>";
                 return;
             }
 
-            document.getElementById("qrCodeDisplay").innerText = `QR 코드: ${qrCode}`;
+            document.getElementById("qrCodeDisplay").innerText = `🕷 QR 코드: ${qrCode} 🕸`;
         });
 
         function submitForm(event) {
@@ -29,11 +101,15 @@
             let studentId = document.getElementById("studentId").value.trim();
             let name = document.getElementById("name").value.trim();
             let fullName = `${studentId} ${name}`;
+            let statusMessage = document.getElementById("statusMessage");
 
             if (!studentId || !name) {
-                alert("학번과 이름을 입력하세요!");
+                alert("⚠️ 학번과 이름을 입력하세요!");
                 return;
             }
+
+            statusMessage.innerText = "🕷 보물 등록 중... 잠시만 기다려 주세요! 🕸";
+            statusMessage.style.display = "block";
 
             let formData = new FormData();
             formData.append("qrCode", qrCode);
@@ -46,29 +122,34 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === "success") {
-                    alert("제출되었습니다!");
+                    statusMessage.innerText = "🎃 보물이 등록되었습니다! 🎃";
                     document.getElementById("studentId").value = "";
                     document.getElementById("name").value = "";
                 } else {
-                    alert(data.message);
+                    statusMessage.innerText = `⚠️ ${data.message}`;
                 }
             })
-            .catch(error => console.error("오류 발생:", error));
+            .catch(error => {
+                statusMessage.innerText = "❌ 오류 발생! 다시 시도해 주세요.";
+                console.error("오류 발생:", error);
+            });
         }
     </script>
 </head>
 <body>
-    <h2>보물찾기 등록</h2>
-    <h3 id="qrCodeDisplay"></h3> <!-- QR 코드를 표시만 함 -->
-    
+    <h2>🎃 할로윈 보물찾기 🎃</h2>
+    <h3 id="qrCodeDisplay">🔍 QR 코드 감지 중... 🕸</h3>
+
     <form id="dataForm" onsubmit="submitForm(event)">
-        <label>학번:</label>
-        <input type="text" id="studentId" name="studentId" placeholder="학번 (예: 11503)" required>
+        <label>👻 학번:</label>
+        <input type="text" id="studentId" name="studentId" placeholder="예: 11503" required>
         <br>
-        <label>이름:</label>
-        <input type="text" id="name" name="name" placeholder="이름 (예: 홍길동)" required>
+        <label>🦇 이름:</label>
+        <input type="text" id="name" name="name" placeholder="예: 홍길동" required>
         <br>
-        <button type="submit" id="submitBtn">제출</button>
+        <button type="submit">👻 제출하기 🎃</button>
     </form>
+
+    <p id="statusMessage">🕷 보물 등록 여부가 여기에 표시됩니다... 🕸</p>
 </body>
 </html>
